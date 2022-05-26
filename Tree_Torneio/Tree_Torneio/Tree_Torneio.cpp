@@ -45,11 +45,50 @@ int BtreeSize(BTREE);
 int BtreeDeep(BTREE);
 BOOLEAN BtreeLeaf(BTREE_NODE*);
 
+void Print(BTREE);
+void PrintGame(BTREE);
+void PrintAllGames(BTREE);
+void PrintLeafs(BTREE);
+void PrintWinnerGames(BTREE);
+void PrintPlayerGames(BTREE, char*);
+
+int CountPlayers(BTREE);
+int CountWinnerSets(BTREE, void*);			//NOT FINISH
+int CountSets(BTREE, char*);
+
+void Position(BTREE, char);					//NOT FINISH
+
 STATUS ReadPlayersFromFile(void**, const char*);
 
 /********** Main ***********************************************/
 int main()
 {
+	BTREE Btree;
+	void* players[STAGES];
+
+	if (ReadPlayersFromFile(players, "torneio.txt"))
+	{
+		Btree = CreateBtree(players, 0, STAGES);
+
+		printf("\nLista de participantes:\n");
+		PrintLeafs(Btree);
+		printf("\nLista de Jogos:\n");
+		PrintAllGames(Btree);
+		printf("\nNumero de eliminatorias: %d", BtreeDeep(Btree) - 1);
+		printf("\nNumero de Jogos: %d", BtreeSize(Btree) / 2);
+		printf("\nNumero de Jogadores: %d", CountPlayers(Btree));
+		printf("\nVencedor do torneio: %s\n", ((PLAYER*)DATA(Btree))->name);
+		printf("\nJogos disputados pelo Vencedor:\n");
+		PrintWinnerGames(Btree);
+		printf("\nSets ganhos pelo Vencedor: %d\n", CountWinnerSets(Btree, DATA(Btree)));
+
+
+		BtreeFree(Btree);
+	}
+	else
+		printf("ERRO na leitura do ficheiro\n");
+
+
 	return 0;
 }
 
@@ -211,6 +250,206 @@ BOOLEAN BtreeLeaf(BTREE_NODE* btree)
 {
 	if ((LEFT(btree) == NULL) && (RIGHT(btree) == NULL))	return(TRUE);
 	else	return(FALSE);
+}
+
+
+/****************************************************************
+* Funcao: Printa a arvore
+*
+* Parametros:	btree - apontador arvore
+*
+* Saida: void
+***************************************************************/
+void Print(BTREE btree) {
+	if (btree != NULL) {
+		Print(btree->left);
+		printf("%s\n", ((PLAYER*)(btree->data))->name);
+		Print(btree->right);
+	}
+}
+
+
+/****************************************************************
+* Funcao: Printa um jogo
+*
+* Parametros:	btree - arvore
+*
+* Saida: void
+***************************************************************/
+void PrintGame(BTREE btree) {
+	if (btree != NULL && BtreeLeaf(btree))	printf("%s -VS- %s\n", ((PLAYER*)(btree->left->data))->name, ((PLAYER*)(btree->right->data))->name);
+}
+
+
+/****************************************************************
+* Funcao: Printa todos os jogo
+*
+* Parametros:	btree - arvore
+*
+* Saida: void
+***************************************************************/
+void PrintAllGames(BTREE btree)
+{
+	if (btree != NULL && !BtreeLeaf(btree)) {
+		PrintAllGames(btree->left);
+		PrintAllGames(btree->right);
+		PrintGame(btree);
+	}
+}
+
+/****************************************************************
+* Funcao: Printa os nos que sao folha
+*
+* Parametros:	btree - arvore
+*
+* Saida: void
+***************************************************************/
+void PrintLeafs(BTREE btree)
+{
+	if (btree != NULL)
+	{
+		PrintLeafs(btree->left);
+		if (BtreeLeaf(btree))
+		{
+			printf("%s\n", ((PLAYER*)(btree->data))->name);
+		}
+		PrintLeafs(btree->right);
+	}
+
+}
+
+
+/****************************************************************
+* Funcao: Printa os vencedores dos jogos
+*
+* Parametros:	btree - arvore
+*
+* Saida: void
+***************************************************************/
+void PrintWinnerGames(BTREE btree)
+{
+	if (btree != NULL && !BtreeLeaf(btree)) {
+		PrintGame(btree);
+
+		if (!strcmp(((PLAYER*)DATA(btree))->name, ((PLAYER*)DATA(LEFT(btree)))->name))	PrintWinnerGames(LEFT(btree));
+		else PrintWinnerGames(RIGHT(btree));
+	}
+}
+
+
+/****************************************************************
+* Funcao: Printa todos os jogos de um jogador
+*
+* Parametros:	btree - arvore
+*				name - nome do jogador desejado
+*
+* Saida: void
+***************************************************************/
+void PrintPlayerGames(BTREE btree, char* name)
+{
+	if (btree != NULL && !BtreeLeaf(btree)) {
+		if (!strcmp(((PLAYER*)DATA(btree))->name, name))	PrintGame(btree);
+
+		PrintPlayerGames(btree->left, name);
+		PrintPlayerGames(btree->right, name);
+	}
+}
+
+
+/****************************************************************
+* Funcao: Conta os jogadores 
+*
+* Parametros:	btree - arvore
+*
+* Saida: void
+***************************************************************/
+int CountPlayers(BTREE btree)
+{
+	int count = 0;
+	if (btree != NULL)
+	{
+		count += CountPlayers(btree->left);
+
+		if (BtreeLeaf(btree))	count++;
+		
+		count += CountPlayers(btree->right);
+	}
+	return count;
+}
+
+
+/****************************************************************
+* Funcao: 
+*
+* Parametros:	btree - 
+*				winner - 
+*
+* Saida: void
+***************************************************************/
+int CountWinnerSets(BTREE btree, void* winner)
+{
+	return 0;
+}
+
+
+/****************************************************************
+* Funcao: Conta os sets de um jogador
+*
+* Parametros:	btree - arvore
+*				name - nome do jogador
+* 
+* Saida: void
+***************************************************************/
+int CountSets(BTREE btree, char* name)
+{
+	int count = 0;
+
+	if (btree != NULL && !BtreeLeaf(btree)) {
+		if (!strcmp(name, ((PLAYER*)(btree->data))->name)) {
+			count = 1 + CountSets(btree->left, name) + CountSets(btree->right, name);
+		}
+		else	count = CountSets(btree->left, name) + CountSets(btree->right, name);
+	}
+
+	return count;
+}
+
+
+/****************************************************************
+* Funcao: 
+*
+* Parametros:	btree - arvore
+*				name -
+*
+* Saida: void
+***************************************************************/
+void Position(BTREE btree, char* name)
+{
+	int deep;
+
+	if (btree != NULL) {
+		if (!strcmp(name, ((PLAYER*)(btree->data))->name)) {
+			deep = BtreeDeep(btree);
+
+			switch (deep) {
+			case 1:
+				printf("Quartos: ");
+				break;
+
+			case 2:
+				printf("Meias: ");
+				break;
+
+			case 3:
+				printf("Finas: ");
+				break;
+
+			}
+			return;
+		}
+		Position(btree->left, name);
+		Position(btree->right, name);
+	}
 }
 
 
