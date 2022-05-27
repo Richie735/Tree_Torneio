@@ -53,7 +53,7 @@ void PrintWinnerGames(BTREE);
 void PrintPlayerGames(BTREE, char*);
 
 int CountPlayers(BTREE);
-int CountWinnerSets(BTREE, void*);			//NOT FINISH
+int CountWinnerSets(BTREE, void*);
 int CountSets(BTREE, char*);
 
 void Position(BTREE, char);					//NOT FINISH
@@ -388,7 +388,17 @@ int CountPlayers(BTREE btree)
 ***************************************************************/
 int CountWinnerSets(BTREE btree, void* winner)
 {
-	return 0;
+    	int count = 0;
+	if (btree != NULL)
+	{
+		if (!strcmp(((PLAYER*)winner)->name,((PLAYER*)DATA(btree))->name))
+        	{
+            		count+=(((PLAYER*)DATA(btree))->sets);
+        	}
+		count+=(((PLAYER*)DATA(btree))->sets) + CountWinnerSets(btree->left, winner) + CountWinnerSets(btree->right, winner);
+	}
+	
+	return count;
 }
 
 
