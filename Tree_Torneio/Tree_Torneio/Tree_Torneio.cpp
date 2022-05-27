@@ -54,9 +54,13 @@ void PrintPlayerGames(BTREE, char*);
 
 int CountPlayers(BTREE);
 int CountWinnerSets(BTREE, void*);
-int CountSets(BTREE, char*);
+int CountPlayerSets(BTREE, char*);
+int CountTotalSets(BTREE );
+int CountLeafs(BTREE);
+int CountPlayerGames(BTREE, char*);
+int CountDisputSets(BTREE, char*);
 
-void Position(BTREE, char);					//NOT FINISH
+void Position(BTREE, char);					
 
 STATUS ReadPlayersFromFile(void**, const char*);
 
@@ -254,7 +258,7 @@ BOOLEAN BtreeLeaf(BTREE_NODE* btree)
 
 
 /****************************************************************
-* Funcao: Printa a arvore
+* Funcao: Printa a arvore InOrder
 *
 * Parametros:	btree - apontador arvore
 *
@@ -361,7 +365,7 @@ void PrintPlayerGames(BTREE btree, char* name)
 *
 * Parametros:	btree - arvore
 *
-* Saida: void
+* Saida: numero de jogadores
 ***************************************************************/
 int CountPlayers(BTREE btree)
 {
@@ -382,9 +386,9 @@ int CountPlayers(BTREE btree)
 * Funcao: 
 *
 * Parametros:	btree - 
-*				winner - 
+*		winner - 
 *
-* Saida: void
+* Saida: numero de set do vencedor
 ***************************************************************/
 int CountWinnerSets(BTREE btree, void* winner)
 {
@@ -406,59 +410,148 @@ int CountWinnerSets(BTREE btree, void* winner)
 * Funcao: Conta os sets de um jogador
 *
 * Parametros:	btree - arvore
-*				name - nome do jogador
+*		name - nome do jogador
 * 
-* Saida: void
+* Saida: numero de sets
 ***************************************************************/
-int CountSets(BTREE btree, char* name)
+int CountPlayerSets(BTREE btree, char* name)
 {
 	int count = 0;
 
-	if (btree != NULL && !BtreeLeaf(btree)) {
-		if (!strcmp(name, ((PLAYER*)(btree->data))->name)) {
-			count = 1 + CountSets(btree->left, name) + CountSets(btree->right, name);
-		}
-		else	count = CountSets(btree->left, name) + CountSets(btree->right, name);
+	if (btree != NULL && !BtreeLeaf(btree))
+	{
+		if (!strcmp(name, ((PLAYER*)btree->data)->name))	count += (((PLAYER*)btree->data)->sets) + CountPlayerSets(btree->left, name) + CountPlayerSets(btree->right, name);
+		else	count = CountPlayerSets(btree->left, name) + CountPlayerSets(btree->right, name);
 	}
-
+	
 	return count;
 }
 
 
 /****************************************************************
-* Funcao: 
+* Funcao: Conta os sets da arvore
 *
 * Parametros:	btree - arvore
-*				name -
+* 
+* Saida: numero de sets
+***************************************************************/
+int CountTotalSets(BTREE btree)
+{
+	int count = 0;
+	if (btree != NULL)
+	{
+		count = (((PLAYER*)(btree)->data)->sets)+ CountTotalSets(btree->left)+ CountTotalSets(btree->right);
+	}
+	return count;
+}
+
+/****************************************************************
+* Funcao: Conta as folhas da arvore
+*
+* Parametros:	btree - arvore
+* 
+* Saida: numero de folhas
+***************************************************************/
+int CountLeafs(BTREE btree)
+{
+	int count = 0;
+	if (btree != NULL)
+	{
+		count += CountLeafs(btree->left);
+		if (BtreeLeaf(btree))
+			count++;
+		count += CountLeafs(btree->right);
+	}
+	return count;
+}
+
+
+/****************************************************************
+* Funcao: Conta os jogos de um jogador
+*
+* Parametros:	btree - arvore
+*		name - nomde do jogador
+* 
+* Saida: numero de jogos do jogador
+***************************************************************/
+int CountPlayerGames(BTREE btree, char* name)
+{
+	int count = 0;
+
+	if (btree != NULL)
+	{
+		if (!strcmp(name, ((PLAYER*)btree->data)->name))
+			count += 1 + CountPlayerGames(btree->left, name) + CountPlayerGames(btree->right, name);
+		else
+			count = CountPlayerGames(btree->left, name) + CountPlayerGames(btree->right, name);
+	}
+	return count;
+}
+
+
+/****************************************************************
+* Funcao: Conta os sets de um jogador
+*
+* Parametros:	btree - arvore
+*		name - nomde do jogador
+* 
+* Saida: numero de sets do jogador
+***************************************************************/
+int CountDisputSets(BTREE btree, char* name)
+{
+	int count = 0;
+
+	if (btree != NULL && !BtreeLeaf(btree))
+	{
+		if (!strcmp(name, ((PLAYER*)btree->left->data)->name) || !strcmp(name, ((PLAYER*)btree->right->data)->name))
+			count += ((PLAYER*)(btree->left->data))->sets + ((PLAYER*)(btree->right->data))->sets + CountDisputSets(btree->left, name) + CountDisputSets(btree->right, name);
+		else
+			count = CountDisputSets(btree->left, name) + CountDisputSets(btree->right, name);
+	}
+	return count;
+}
+
+
+/****************************************************************
+* Funcao: Printa o jogo onde o jogador foi eliminado 
+*
+* Parametros:	btree - arvore
+*		name - nome do jogador
 *
 * Saida: void
 ***************************************************************/
 void Position(BTREE btree, char* name)
 {
-	int deep;
-
-	if (btree != NULL) {
-		if (!strcmp(name, ((PLAYER*)(btree->data))->name)) {
-			deep = BtreeDeep(btree);
-
-			switch (deep) {
-			case 1:
-				printf("Quartos: ");
+	int deep = 0;
+	
+	if (btree != NULL)
+	{
+		if (!strcmp(name, ((PLAYER*)btree->data)->name))
+		{
+			deep=BtreeDeep(btree);
+			switch (deep)
+			{
+			case 4:
+				printf("\nVencedor");
 				break;
-
-			case 2:
-				printf("Meias: ");
-				break;
-
 			case 3:
-				printf("Finas: ");
+				printf("\nEliminado na final");
 				break;
-
+			case 2:
+				printf("\nEliminado nas meias finais");
+				break;
+			case 1:
+				printf("\nEliminado nos quartos de final");
+				break;
 			}
 			return;
 		}
-		Position(btree->left, name);
-		Position(btree->right, name);
+		else
+		{
+			Position(btree->left, name);
+			Position(btree->right, name);
+		}
+	
 	}
 }
 
